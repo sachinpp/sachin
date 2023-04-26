@@ -4,15 +4,11 @@
  */
 
 import { LightningElement ,api,wire} from "lwc";
-import getQuoteDetails from '@salesforce/apex/QuoteDto.getQuoteDetails';
-import { updateRecord } from 'lightning/uiRecordApi';
+import getQuoteDetails from '@salesforce/apex/ManageQuoteController.getQuoteDetails';
+import updateQuoteDetails from '@salesforce/apex/ManageQuoteController.updateQuoteDetails';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import Amount_FIELD from '@salesforce/schema/Quote__c.TotalQuotedAmount__c';
-import ID_FIELD from '@salesforce/schema/Quote__c.Id';
-import LightningModal from 'lightning/modal';
-export default class AdjustQuotePrice extends LightningModal {
+export default class AdjustQuotePrice extends LightningElement {
   adjustedAmountLabel = "Adjusted Amount";
-adjustedAmount =0;
 
   @api recordId;
 
@@ -30,7 +26,8 @@ adjustedAmount =0;
   }
 
   handleAmountChange(event){
-    this.adjustedAmount =parseFloat(event.detail.value);
+   const adjustedAmount = event.detail.value ? parseFloat(event.detail.value) : 0;
+    this.quoteData.quoteAmount = adjustedAmount;
 }
 
 
@@ -38,7 +35,6 @@ adjustedAmount =0;
   wiredQuoteData({ error, data }) {
       if (data) {
           this.quoteData = data;
-          this.adjustedAmount = this.quoteData.quoteAmount;
           this.error = undefined;
       } else if (error) {
           this.error = error;
@@ -51,33 +47,30 @@ adjustedAmount =0;
   }
 
   handleSave() {
-
-    const fields = {};
-    fields[ID_FIELD.fieldApiName] = this.quoteData.id;
-    fields[Amount_FIELD.fieldApiName] = this.adjustedAmount;
-
-    const recordInput = { fields };
-
-    updateRecord(recordInput)
-        .then(() => {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Success',
-                    message: 'Quote amount adjusted successfully',
-                    variant: 'success'
-                })
-            );
+    this.updateQuoteDetails();
+   
+    }
+    
+    async updateQuoteDetails() {
+        try {
+            await updateQuoteDetails({
+                quoteDetailsJson:JSON.stringify(this.quoteData) 
+            })
+            this.showToast('Success', 'Quote Amount Updated Successfully', 'success');
             this.hideModalBox();
-        })
-        .catch(error => {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error updating record',
-                    message: error.body.message,
-                    variant: 'error'
-                })
-            );
+        } catch (error) {
+            this.showToast('Something went wrong', error.body.message, 'error');
+            return;
+        }
+    }
+
+    showToast(title, message, variant) {
+        const event = new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: variant
         });
+        this.dispatchEvent(event);
     }
 
 

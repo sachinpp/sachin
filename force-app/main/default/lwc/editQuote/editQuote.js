@@ -3,89 +3,76 @@
  * Copyright (c) 2023 Provus Inc. All rights reserved.
  */
 
-import { LightningElement, api,wire,track } from "lwc";
-import getQuoteDetails from '@salesforce/apex/QuoteDto.getQuoteDetails';
-import { updateRecord } from 'lightning/uiRecordApi';
+import { LightningElement, api, wire, track } from "lwc";
+import getQuoteDetails from '@salesforce/apex/ManageQuoteController.getQuoteDetails';
+import updateQuoteDetails from '@salesforce/apex/ManageQuoteController.updateQuoteDetails';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
-import STARTDATE_FIELD from '@salesforce/schema/Quote__c.StartDate__c';
-import ENDDATE_FIELD from '@salesforce/schema/Quote__c.EndDate__c';
-import ID_FIELD from '@salesforce/schema/Quote__c.Id';
-
 export default class EditQuote extends LightningElement {
-  @api recordId;
-  _startDate= 1547250828000;
-  _endDate= 1547250828000;
-  @track quoteData = {
-    name: "Quote Name",
-    startDate: 1547250828000,
-    endDate: 1547250828000
-  };
-  error;
+    @api recordId;
 
-  handleStartDateChange(event){
-  this._startDate= event.detail.value;
-}
+    @track quoteData = {
+        name: "Quote Name",
+        startDate: 1547250828000,
+        endDate: 1547250828000
+    };
+    error;
 
-handleEndDateChange(event){
-    this._endDate = event.detail.value;
-  }
-
-  @wire(getQuoteDetails,{recordId :'$recordId'})
-  wiredQuoteData({ error, data }) {
-      if (data) {
-          this.quoteData =JSON.parse(JSON.stringify( data)) ;
-          this.error = undefined;
-      } else if (error) {
-          this.error = error;
-          console.log(error);
-      }
-  }
-  handleSave() {
-
-    const allValid = [...this.template.querySelectorAll('lightning-input')]
-    .reduce((validSoFar, inputFields) => {
-        inputFields.reportValidity();
-        return validSoFar && inputFields.checkValidity();
-    }, true);
-
-if (allValid) {
-    // Create the recordInput object
-    const fields = {};
-    fields[ID_FIELD.fieldApiName] = this.quoteData.id;
-    fields[STARTDATE_FIELD.fieldApiName] = this._startDate;
-    fields[ENDDATE_FIELD.fieldApiName] = this._endDate;
-
-    const recordInput = { fields };
-
-    updateRecord(recordInput)
-        .then(() => {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Success',
-                    message: 'Quote Details Updated Successfully',
-                    variant: 'success'
-                })
-            );
-        })
-        .catch(error => {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error updating record',
-                    message: error.body.message,
-                    variant: 'error'
-                })
-            );
-        });
+    handleStartDateChange(event) {
+        const startDate = event.detail.value;
+        this.quoteData.startDate = startDate;
     }
-else {
-    // The form is not valid
-    this.dispatchEvent(
-        new ShowToastEvent({
-            title: 'Something is wrong',
-            message: 'Check your input and try again.',
-            variant: 'error'
-        })
-     );
-}
-}
+
+    handleEndDateChange(event) {
+        const endDate = event.detail.value;
+        this.quoteData.endDate = endDate;
+    }
+
+    @wire(getQuoteDetails, { recordId: '$recordId' })
+    wiredQuoteData({ error, data }) {
+        if (data) {
+            this.quoteData = JSON.parse(JSON.stringify(data));
+            this.error = undefined;
+        } else if (error) {
+            this.error = error;
+            console.log(error);
+        }
+    }
+
+    handleSave() {
+
+        const allValid = [...this.template.querySelectorAll('lightning-input')]
+            .reduce((validSoFar, inputFields) => {
+                inputFields.reportValidity();
+                return validSoFar && inputFields.checkValidity();
+            }, true);
+
+        if (allValid) {
+            this.updateQuoteDetails();
+
+        }
+        else {
+            this.showToast('Something went wrong', 'Check your input and try again.', 'error');
+        }
+    } 
+
+    async updateQuoteDetails() {
+        try {
+            await updateQuoteDetails({
+                quoteDetailsJson:JSON.stringify(this.quoteData) 
+            })
+            this.showToast('Success', 'Quote Details Updated Successfully', 'success');
+        } catch (error) {
+            this.showToast('Something went wrong', error.body.message, 'error');
+            return;
+        }
+    }
+
+    showToast(title, message, variant) {
+        const event = new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: variant
+        });
+        this.dispatchEvent(event);
+    }
 }

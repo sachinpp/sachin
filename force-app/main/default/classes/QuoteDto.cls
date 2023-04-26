@@ -4,7 +4,7 @@ public with sharing class QuoteDto extends BaseDto {
   @AuraEnabled
   public Date endDate;
   @AuraEnabled
-  public date startDate;
+  public Date startDate;
   @AuraEnabled
   public Decimal quoteAmount;
 
@@ -19,11 +19,14 @@ public with sharing class QuoteDto extends BaseDto {
     this.quoteAmount = quote.TotalQuotedAmount__c;
   }
 
-  @AuraEnabled(cacheable=true)
-  public static QuoteDto getQuoteDetails( Id recordId) {
-    return new QuoteDto([Select Id, Name,StartDate__c,EndDate__c,TotalQuotedAmount__c from Quote__c where Id =:recordId ]);
+  public static Quote__c mapToQuote(QuoteDto quoteDto) {
+    Quote__c quote= new Quote__c();
+    quote.Id = quoteDto.id;
+    quote.StartDate__c = quoteDto.startDate;
+    quote.EndDate__c = quoteDto.endDate;
+    quote.TotalQuotedAmount__c = quoteDto.quoteAmount;
+    return quote;
   }
-
 
   public override SObject refreshSo() {
     return null;
