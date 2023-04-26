@@ -34,7 +34,7 @@ export default class AdjustQuotePrice extends LightningElement {
   @wire(getQuoteDetails,{recordId :'$recordId'})
   wiredQuoteData({ error, data }) {
       if (data) {
-          this.quoteData = data;
+          this.quoteData = JSON.parse(JSON.stringify(data));
           this.error = undefined;
       } else if (error) {
           this.error = error;
