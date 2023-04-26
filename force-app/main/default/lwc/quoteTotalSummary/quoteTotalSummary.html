@@ -3,10 +3,12 @@
   <div class="slds-m-around_medium">
     <h3 class="slds-page-header__title">Quote Adjusted Amount</h3>
     <span>&nbsp;</span>
+          <c-adjust-quote-price record-id={recordId}></c-adjust-quote-price>
     <lightning-button
       variant="brand"
       type="button"
       label="Adjust quote"
+      onclick={handleAdjustQuote}
     ></lightning-button>
   </div>
 </template>
